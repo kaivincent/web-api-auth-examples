@@ -19,12 +19,45 @@
   <body>
     <div class="container">
       <div id="login">
+        <h1>This is an example of the Implicit Grant flow</h1>
         <button id="login-button" class="btn btn-primary">Log in with Spotify</button>
-          <button type="button"><img src="spotify.svg">Log in with Spotify</button>
       </div>
       <div id="loggedin">
+        <div id="user-profile">
+        </div>
+        <div id="oauth">
+        </div>
       </div>
     </div>
+
+    <script id="user-profile-template" type="text/x-handlebars-template">
+      <h1>Logged in as {{display_name}}</h1>
+      <div class="media">
+        <div class="pull-left">
+          <img class="media-object" width="150" src="{{images.0.url}}" />
+        </div>
+        <div class="media-body">
+          <dl class="dl-horizontal">
+            <dt>Display name</dt><dd class="clearfix">{{display_name}}</dd>
+            <dt>Id</dt><dd>{{id}}</dd>
+            <dt>Email</dt><dd>{{email}}</dd>
+            <dt>Spotify URI</dt><dd><a href="{{external_urls.spotify}}">{{external_urls.spotify}}</a></dd>
+            <dt>Link</dt><dd><a href="{{href}}">{{href}}</a></dd>
+            <dt>Profile Image</dt><dd class="clearfix"><a href="{{images.0.url}}">{{images.0.url}}</a></dd>
+            <dt>Country</dt><dd>{{country}}</dd>
+          </dl>
+        </div>
+      </div>
+    </script>
+
+    <script id="oauth-template" type="text/x-handlebars-template">
+      <h2>oAuth info</h2>
+      <dl class="dl-horizontal">
+        <dt>Access token</dt><dd class="text-overflow">{{access_token}}</dd>
+      </dl>
+    </script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
     <script>
       (function() {
@@ -60,6 +93,14 @@
           return text;
         };
 
+        var userProfileSource = document.getElementById('user-profile-template').innerHTML,
+            userProfileTemplate = Handlebars.compile(userProfileSource),
+            userProfilePlaceholder = document.getElementById('user-profile');
+
+            oauthSource = document.getElementById('oauth-template').innerHTML,
+            oauthTemplate = Handlebars.compile(oauthSource),
+            oauthPlaceholder = document.getElementById('oauth');
+
         var params = getHashParams();
 
         var access_token = params.access_token,
@@ -72,26 +113,12 @@
           localStorage.removeItem(stateKey);
           if (access_token) {
             $.ajax({
-                url: 'https://api.spotify.com/v1/me/top/artists?time_range=medium_term&limit=10',
+                url: 'https://api.spotify.com/v1/me',
                 headers: {
                   'Authorization': 'Bearer ' + access_token
                 },
                 success: function(response) {
-//                  userProfilePlaceholder.innerHTML = userProfileTemplate(response);
-                    alert(response.items.length);
-                    var info;
-                    if (response.items.length==0){
-                        info = "We're sorry, but we couldn't find any recent listening data from your Spotify account.";
-                    }
-                    else {
-                        info = "<h1>Great! We've successfully synced with your Spotify account!</h1><h2>Here's who you've been listening to most recently:<h2><ol>";
-                        for (i=0; i<response.items.length; i++){
-                            info += "<li>" + response.items[i].name + "</li>";
-                        }
-                        info += "</ol><p>Does that sound about right? If so, Harmonize will begin looking for possible duet and ensemble matches for you. And if your music tastes change, you can easily re-sync in your account settings.<p>";
-                    }
-//                    var info = response.items.name;
-                    $("#loggedin").html(info);
+                  userProfilePlaceholder.innerHTML = userProfileTemplate(response);
 
                   $('#login').hide();
                   $('#loggedin').show();
@@ -110,8 +137,7 @@
             var state = generateRandomString(16);
 
             localStorage.setItem(stateKey, state);
-            var scope = 'user-top-read';
-//              user-library-read user-top-read user-read-private user-read-email
+            var scope = 'user-read-private user-read-email';
 
             var url = 'https://accounts.spotify.com/authorize';
             url += '?response_type=token';
